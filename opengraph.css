@@ -1,0 +1,21 @@
+#block-opengraph-information .content {
+    line-height: 20px;
+}
+
+.og-site-name {
+    font-weight: bold;
+}
+
+.og-phone-number,
+.og-fax-number {
+    padding-left: 20px;
+    background-image: url('images/icons.png');
+    background-repeat: no-repeat;
+}
+
+.og-phone-number {
+    background-position: 0px -102px;
+}
+.og-fax-number {
+    background-position: 0px -2px;
+}

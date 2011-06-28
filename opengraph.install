@@ -1,0 +1,27 @@
+<?php
+// $Id$ 
+
+/**
+ * @file 
+ */
+
+/**
+ * Implementation of hook_install() 
+ */
+function opengraph_install() {
+
+}
+
+/**
+ * Implementation of hook_uninstall() 
+ */
+function opengraph_uninstall() {
+  $properties = array(
+    'site_name', 'type', 'description',
+    'street-address', 'locality', 'region', 'postal-code', 'country-name',
+    'email', 'phone_number', 'fax_number',
+  );
+  foreach ($properties as $property) {
+    variable_del('opengraph_' . str_replace('-', '_', $property));
+  }
+}

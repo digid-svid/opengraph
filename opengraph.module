@@ -1,0 +1,181 @@
+<?php
+// $Id$ 
+
+/**
+ * @file
+ *
+ * Open Graph protocol implementation.
+ *
+ * See http://opengraphprotocol.org/ for details.
+ */
+
+/**
+ * Add an opengraph property to the <head> section.
+ * 
+ * Before acutally adding the property, this function first checks if the 
+ * selected namespace has been defined. If the namespace is not available,
+ * the property is discarded.
+ *
+ * @param $property The name of the property.
+ * @param $value The value of the property.
+ * @param $namespace The namespace of the property. Defaults to 'og'.
+ */
+function opengraph_set_property($property, $value, $namespace = 'og') {
+  if (namespaces_is_available($namespace)) {
+    drupal_set_html_head(sprintf('<meta property="%s:%s" content="%s" />', $namespace, $property, $value));
+  }
+}
+
+/**
+ * Implementation of hook_menu()
+ */
+function opengraph_menu() {
+  $menu = array();
+  $menu['admin/settings/opengraph'] = array(
+    'title' => 'Open Graph',
+    'description' => 'Edit basic Open Graph aware information.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('opengraph_site_information'),
+    'access arguments' => array('administer site configuration'),
+    'file' => 'opengraph.admin.inc',
+  );
+
+  return $menu;
+}
+
+/**
+ * Implementation of hook_block()
+ */
+function opengraph_block($op = 'list', $delta = 0, $edit = array()) {
+  switch ($op) {
+    case 'list':
+      return array(
+        'information' => array(
+          'info' => t('Open Graph Information'),
+          'cache' => BLOCK_CACHE_GLOBAL,
+        ),
+      );
+
+    case 'view':
+      return opengraph_block_content($delta);
+
+    case 'configure':
+      break;
+
+    case 'save':
+      break;
+  }
+}
+
+/**
+ * Request the content for the block identified by $delta.
+ *
+ * @param $delta The identifier for the block the content is requested for.
+ * @return Array with subject and content of the block.
+ */
+function opengraph_block_content($delta) {
+  // Maps tokens to Open Graph properties
+  $replacement_map = array(
+    '%name' => 'site_name',
+    '%street' => 'street-address',
+    '%postalcode' => 'postal-code',
+    '%city' => 'locality',
+    '%region' => 'region',
+    '%country' => 'country-name',
+    '%email' => 'email',
+    '%phone' => 'phone_number',
+    '%fax' => 'fax_number'
+  );
+
+  $replacement_values = array(
+    "\n" => '<br />'
+  );
+
+  $replacements = 0;
+
+  $format = variable_get('opengraph_block_format', "%name\n%street\n%postalcode %city %region\n%country\n%email\n%phone\n%fax");
+
+  foreach ($replacement_map as $token => $property) {
+    $value = variable_get('opengraph_' . str_replace('-', '_', $property), '');
+    if (empty($value)) {
+      $replacement_values[$token] = '';
+      continue;
+    }
+
+    if ($property == 'email') {
+      $value = l($value, 'mailto:' . $value);
+    }
+
+    $replacement_values[$token] = sprintf('<span class="og-%s">%s</span>', str_replace('_', '-', $property), $value);
+    $replacements++;
+  }
+
+  $content = str_replace(array_keys($replacement_values), array_values($replacement_values), $format);
+
+  if (variable_get('facebook_app_id', NULL) !== NULL) {
+    $content .= '<br /><fb:like layout="button_count"></fb:like>';
+  }
+
+  if ($replacements === 0) {
+    $content = '';
+  }
+
+  return array(
+    'subject' => '',
+    'content' => $content,
+  );
+}
+
+/**
+ * Implementation of hook_init()
+ */
+function opengraph_init() {
+  parse_str($_SERVER['QUERY_STRING'], $args);
+  $node = menu_get_object();
+  $logo = theme_get_setting('logo');
+
+  if (drupal_is_front_page() || ($node->type === 'page')) {
+    // Set properties for website item
+    opengraph_set_property('title', variable_get('site_name', 'Drupal'));
+    opengraph_set_property('url', url('<front>', array('absolute' => TRUE)));
+
+    $properties = array(
+      'site_name', 'description', 'type',
+      'street-address', 'locality', 'region', 'postal-code', 'country-name',
+      'email', 'phone_number', 'fax_number',
+    );
+    foreach ($properties as $property) {
+      $value = variable_get('opengraph_' . str_replace('-', '_', $property), NULL);
+      if (empty ($value)) {
+        continue;
+      }
+
+      opengraph_set_property($property, $value);
+    }
+  }
+  elseif (is_object($node)) {
+    opengraph_set_property('title', drupal_get_title());
+    opengraph_set_property('type', sprintf('drupal:%s', $node->type));
+    opengraph_set_property('url', url($args['q'], array('absolute' => TRUE)));
+  }
+  else {
+    opengraph_set_property('title', drupal_get_title());
+    opengraph_set_property('type', 'other');
+    opengraph_set_property('url', url($args['q'], array('absolute' => TRUE)));
+  }
+
+  opengraph_set_property('site_name', variable_get('opengraph_site_name', 'Drupal'));
+  opengraph_set_property('image', url($logo, array('absolute' => TRUE)));
+
+  drupal_add_css(drupal_get_path('module', 'opengraph') . '/opengraph.css');
+}
+
+/**
+ * Implementation of hook_namespaces()
+ */
+function opengraph_namespaces() {
+  return array(
+    'og' => 'http://opengraphprotocol.org/schema/',
+    'drupal' => 'http://www.drupal.org/ns',
+  );
+}
