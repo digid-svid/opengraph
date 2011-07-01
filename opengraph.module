@@ -1,5 +1,5 @@
 <?php
-// $Id$ 
+// $Id$
 
 /**
  * @file
@@ -11,8 +11,8 @@
 
 /**
  * Add an opengraph property to the <head> section.
- * 
- * Before acutally adding the property, this function first checks if the 
+ *
+ * Before acutally adding the property, this function first checks if the
  * selected namespace has been defined. If the namespace is not available,
  * the property is discarded.
  *
@@ -130,17 +130,22 @@ function opengraph_block_content($delta) {
  * Implementation of hook_init()
  */
 function opengraph_init() {
+  // Do not add OpenGraph information on the admin section.
+  if (substr($_GET['q'], 0, 5) == 'admin') {
+    return;
+  }
+
   parse_str($_SERVER['QUERY_STRING'], $args);
   $node = menu_get_object();
   $logo = theme_get_setting('logo');
 
-  if (drupal_is_front_page() || ($node->type === 'page')) {
+  if (drupal_is_front_page()) {
     // Set properties for website item
     opengraph_set_property('title', variable_get('site_name', 'Drupal'));
     opengraph_set_property('url', url('<front>', array('absolute' => TRUE)));
 
     $properties = array(
-      'site_name', 'description', 'type',
+      'description', 'type',
       'street-address', 'locality', 'region', 'postal-code', 'country-name',
       'email', 'phone_number', 'fax_number',
     );
