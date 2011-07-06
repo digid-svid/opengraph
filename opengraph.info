@@ -1,7 +1,7 @@
-; $Id$ 
-name = Open Graph API
-description = Provides support for the Open Graph API
-package = Other
-version = 6.x-0.2
+; $Id$
+name = OpenGraph Protocol
+description = Provides support for the OpenGraph Protocol
+package = Third-party Integration
+version = 6.x-1.0
 core = 6.x
 dependencies[] = namespaces
